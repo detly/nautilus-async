@@ -23,23 +23,10 @@ import glib
 
 # Period in seconds for really long function
 TIMEOUT = 3
-        
-def make_fake_menu_item(num):
-        return nautilus.MenuItem(
-                        "Fake: %s %i" % num,
-                        "Fake: %s #%i" % num,
-                        "Fake: %s #%i" % num,
-                        None)
 
 def schedule_background_work(uri, callback):
     glib.timeout_add_seconds(TIMEOUT, callback, uri)
-
-class ItemStatus(object):
-    
-    def __init__(self, nautilus_file_info):
-        self.item = nautilus_file_info
-        self.status = None
-        
+      
 class AsyncInfoProvider(nautilus.InfoProvider):
 
     # These methods are all called synchronously. We're fine.
