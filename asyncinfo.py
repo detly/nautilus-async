@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 """
 Copyright (C) 2010 by Jason Heeris <jason.heeris@gmail.com>
 
@@ -21,38 +19,10 @@ import sys
 
 import nautilus
 
-import gtk
-import pygtk
 import glib
 
 # Period in seconds for really long function
 TIMEOUT = 3
-
-def debug_shell(namespace):
-    """
-    
-    Open up an IPython shell which shares the context of the extension.
-    
-    See: http://ipython.scipy.org/moin/Cookbook/EmbeddingInGTK
-    
-    """
-    import gtk
-    from rabbitvcs.debug.ipython_view import IPythonView
-    
-    window = gtk.Window()
-    window.set_size_request(750,550)
-    window.set_resizable(True)
-    window.set_position(gtk.WIN_POS_CENTER)
-    scrolled_window = gtk.ScrolledWindow()
-    scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-    ipython_view = IPythonView()
-    ipython_view.updateNamespace(namespace)
-    ipython_view.set_wrap_mode(gtk.WRAP_CHAR)
-    ipython_view.show()
-    scrolled_window.add(ipython_view)
-    scrolled_window.show()
-    window.add(scrolled_window)
-    window.show()
         
 def make_fake_menu_item(num):
         return nautilus.MenuItem(
@@ -64,10 +34,13 @@ def make_fake_menu_item(num):
 def schedule_background_work(uri, callback):
     glib.timeout_add_seconds(TIMEOUT, callback, uri)
 
-def uri_for_item(item):
-    return item.get_uri()
-
-class AsyncProviderTest(nautilus.InfoProvider):
+class ItemStatus(object):
+    
+    def __init__(self, nautilus_file_info):
+        self.item = nautilus_file_info
+        self.status = None
+        
+class AsyncInfoProvider(nautilus.InfoProvider):
 
     # These methods are all called synchronously. We're fine.
 
