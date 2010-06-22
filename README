@@ -1,0 +1,7 @@
+This is collection of classes intended to wrap the Nautilus/Python bindings and
+simplify asynchronous work in extensions.
+
+It's a work in progress.
+
+— Jason Heeris
+<jason.heeris@gmail.com>
