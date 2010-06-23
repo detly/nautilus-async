@@ -22,14 +22,14 @@ import nautilus
 import glib
 
 # Period in seconds for really long function
-TIMEOUT = 6
+TIMEOUT = 3
 
 def schedule_background_work(uri, callback):
-    gobject.idle_add(TIMEOUT, callback, uri)
+    glib.timeout_add_seconds(TIMEOUT, callback, uri)
 
 class ItemStatus(object):
     
-    def __init__(nautilus_file_info):
+    def __init__(self, nautilus_file_info):
         self.item = nautilus_file_info
         self.status = None    
 
@@ -40,7 +40,10 @@ class AsyncInfoProvider2(nautilus.InfoProvider):
     def __init__(self):
         self.nodes_awaiting_update = {}
 
-    def update_status(self, item, status):
+    def update_info_initial(self, item):
+        pass
+
+    def update_info_final(self, item, status):
         if status:
             item.add_emblem("emblem-generic")
 
@@ -52,14 +55,16 @@ class AsyncInfoProvider2(nautilus.InfoProvider):
         
         if item_status is None:
             self.nodes_awaiting_update[uri] = ItemStatus(item)
-            schedule_background_work(uri, self.update_file_info_callback)
-            status = False
+            schedule_background_work(uri, self.file_info_callback)
+            self.update_info_initial(item)
         elif item_status.status is not None:
             status = item_status.status
             del self.nodes_awaiting_update[uri]
+            self.update_info_final(item, status)
+        else:
+            self.nodes_awaiting_update[uri] = ItemStatus(item)
         
-        
-    def update_file_info_callback(self, uri):
+    def file_info_callback(self, uri):
         
         item_status = self.nodes_awaiting_update.get(uri)
         
