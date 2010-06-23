@@ -27,11 +27,11 @@ TIMEOUT = 3
 def schedule_background_work(uri, callback):
     glib.timeout_add_seconds(TIMEOUT, callback, uri)
 
-class ItemStatus(object):
+class ItemResult(object):
     
     def __init__(self, nautilus_file_info):
         self.item = nautilus_file_info
-        self.status = None    
+        self.result = None    
 
 class AsyncInfoProvider2(nautilus.InfoProvider):
 
@@ -43,33 +43,42 @@ class AsyncInfoProvider2(nautilus.InfoProvider):
     def update_info_initial(self, item):
         pass
 
-    def update_info_final(self, item, status):
-        if status:
+    def update_info_final(self, item, result):
+        if result:
             item.add_emblem("emblem-generic")
 
     def update_file_info(self, item):
                 
         uri = item.get_uri()
         
-        item_status = self.nodes_awaiting_update.get(uri) 
+        item_result = self.nodes_awaiting_update.get(uri) 
         
-        if item_status is None:
-            self.nodes_awaiting_update[uri] = ItemStatus(item)
+        if item_result is None:
+            # If we don't have an nautilus.FileInfo item stored then this is the
+            # first time we've been called (either at all, or since the last
+            # callback caused the status to update). Store the item, so we can
+            # get it back later, and use something serialisable to map to it.
+            self.nodes_awaiting_update[uri] = ItemResult(item)
             schedule_background_work(uri, self.file_info_callback)
             self.update_info_initial(item)
-        elif item_status.status is not None:
-            status = item_status.status
+        elif item_result.result is not None:
+            # This means that we are being called from INSIDE
+            # invalidate_extension_info - in other words, we're in the callback
+            result = item_result.result
             del self.nodes_awaiting_update[uri]
-            self.update_info_final(item, status)
+            self.update_info_final(item, result)
         else:
-            self.nodes_awaiting_update[uri] = ItemStatus(item)
+            # This means that we've been called again while *waiting* for the
+            # async activity to complete. In which case, update the item object
+            # just in case it's changed, but don't do anything else.
+            self.nodes_awaiting_update[uri] = ItemResult(item)
         
     def file_info_callback(self, uri):
         
-        item_status = self.nodes_awaiting_update.get(uri)
+        item_result = self.nodes_awaiting_update.get(uri)
         
-        if item_status is not None:
-            item_status.status = True
+        if item_result is not None:
+            item_result.result = True
             item_status.item.invalidate_extension_info()
             # Edge case: item is deleted before this callback is called
         
