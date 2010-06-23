@@ -55,7 +55,7 @@ class AsyncInfoProvider2(nautilus.InfoProvider):
         self.nodes_awaiting_update = {}
 
 
-    def schedule_background_work(uri):
+    def schedule_background_work(self, uri):
         """
         This gets called to do the asynchronous work. It should return as soon
         as possible, delegating all work to another process. When it is done, it
@@ -111,7 +111,7 @@ class AsyncInfoProvider2(nautilus.InfoProvider):
             # get it back later, and use something serialisable to map to it.
             self.nodes_awaiting_update[uri] = ItemResult(item)
             self.update_info_initial(item)
-            self.schedule_background_work(uri, self.file_info_callback)
+            self.schedule_background_work(uri)
         elif item_result.result is not None:
             # This means that we are being called from INSIDE
             # invalidate_extension_info - in other words, we're in the callback
@@ -142,7 +142,7 @@ class AsyncInfoProvider2(nautilus.InfoProvider):
         
         if item_result is not None:
             item_result.result = result
-            item_status.item.invalidate_extension_info()
+            item_result.item.invalidate_extension_info()
             # Edge case: item is deleted before this callback is called
         
         # else: something went wrong
