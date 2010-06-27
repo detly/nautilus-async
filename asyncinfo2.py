@@ -148,3 +148,4 @@ class AsyncInfoProvider2(nautilus.InfoProvider):
         # else: something went wrong
             
         
+    
