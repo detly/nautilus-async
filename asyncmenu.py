@@ -23,13 +23,32 @@ import glib
 
 # Period in seconds for really long function
 TIMEOUT = 3
-        
-def make_fake_menu_item(num):
-        return nautilus.MenuItem(
-                        "Fake: %s %i" % num,
-                        "Fake: %s #%i" % num,
-                        "Fake: %s #%i" % num,
-                        None)
 
-def schedule_background_work(uri, callback):
-    glib.timeout_add_seconds(TIMEOUT, callback, uri)
+class FakeMenuItem(nautilus.MenuItem):
+    
+    def __init__(self, label, sensitive=True):
+        super(FakeMenuItem, self).__init__(
+                                        "Fake::Fake",
+                                        "%s" % label,
+                                        "%s" % label,
+                                        None)
+        self.set_property('sensitive', sensitive)
+
+class AsyncBackgroundMenuProvider(nautilus.MenuProvider):
+    
+    def __init__(self):
+        self.provider = None
+        self.items = {}
+
+    def get_items_initial(self, uri):
+        return [FakeMenuItem("Please wait...", False)]
+    
+    def calculate_items_for_result(self, uri, result):
+        return [FakeMenuItem("Menu item for: %s" % result)]
+        
+    def get_background_items_full(self, provider, window, folder):
+        if self.provider is None:
+            self.provider = provider
+        
+        return self.calculate_items_for_result(folder.get_uri(), "Blah")
+        
