@@ -35,10 +35,14 @@ class FakeMenuItem(nautilus.MenuItem):
         self.set_property('sensitive', sensitive)
 
 class AsyncBackgroundMenuProvider(nautilus.MenuProvider):
-    
+    """
+    WARNING: I have not fully tested the "in_update_signal" mechanism.
+    """
     def __init__(self):
         self.provider = None
         self.items = {}
+        self.in_update_signal = False
+        self.items_requested_for_update = []
 
     def get_items_initial(self, uri):
         return [FakeMenuItem("Please wait...", False)]
@@ -50,5 +54,7 @@ class AsyncBackgroundMenuProvider(nautilus.MenuProvider):
         if self.provider is None:
             self.provider = provider
         
+        # If we're here because of the update signal, 
+
         return self.calculate_items_for_result(folder.get_uri(), "Blah")
         
