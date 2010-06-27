@@ -99,7 +99,7 @@ class AsyncInfoProvider2(nautilus.InfoProvider):
             item.add_emblem("emblem-generic")
 
     def update_file_info(self, item):
-                
+        """ This is the hook for the nautilus extension API. """                
         uri = item.get_uri()
         
         item_result = self.nodes_awaiting_update.get(uri) 
