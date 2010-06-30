@@ -55,17 +55,17 @@ class AsyncInfoProvider2(nautilus.InfoProvider):
         self.nodes_awaiting_update = {}
 
 
-    def schedule_background_work(self, uri):
+    def schedule_info_work(self, uri):
         """
         This gets called to do the asynchronous work. It should return as soon
         as possible, delegating all work to another process. When it is done, it
-        should call "background_work_complete" with the URI that was given here
-        and the result from the background task.
+        should call "info_work_complete" with the URI that was given here and
+        the result from the background task.
         
         Do not use threads, they will not work under Nautilus.
         
         If scheduling the background work *still* has too much latency, I
-        recommend using glib's "idle_add" method.        
+        recommend using glib's "idle_add" method.
         
         @param uri the URI of the item for which the information was requested
                    (this is a URL-encoded string)
@@ -73,7 +73,7 @@ class AsyncInfoProvider2(nautilus.InfoProvider):
         # Let's just make something up to demonstrate
         glib.timeout_add_seconds(
                         TIMEOUT,
-                        self.background_work_complete,
+                        self.info_work_complete,
                         uri,
                         42)
 
@@ -111,7 +111,7 @@ class AsyncInfoProvider2(nautilus.InfoProvider):
             # get it back later, and use something serialisable to map to it.
             self.nodes_awaiting_update[uri] = ItemResult(item)
             self.update_info_initial(item)
-            self.schedule_background_work(uri)
+            self.schedule_info_work(uri)
         elif item_result.result is not None:
             # This means that we are being called from INSIDE
             # invalidate_extension_info - in other words, we're in the callback
@@ -124,12 +124,12 @@ class AsyncInfoProvider2(nautilus.InfoProvider):
             # just in case it's changed, but don't do anything else.
             self.nodes_awaiting_update[uri] = ItemResult(item)
         
-    def background_work_complete(self, uri, result):
+    def info_work_complete(self, uri, result):
         """
         This handles the result of the asynchronous activity, which ends up
         getting passed to "update_info_final()". It takes the URI that was given
-        "schedule_background_work" and a single result (that may change to a
-        more flexible user data system).
+        "schedule_info_work" and a single result (that may change to a more
+        flexible user data system).
         
         This method is not meant to be overridden.
         

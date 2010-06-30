@@ -42,19 +42,55 @@ class AsyncBackgroundMenuProvider(nautilus.MenuProvider):
         self.provider = None
         self.items = {}
         self.in_update_signal = False
-        self.items_requested_for_update = []
+        self.uris_requested_for_update = set()
+
+    def schedule_menu_work(self, uri):
+        # Let's just make something up to demonstrate
+        glib.timeout_add_seconds(
+                        TIMEOUT,
+                        self.menu_work_complete,
+                        uri,
+                        42)
+
 
     def get_items_initial(self, uri):
         return [FakeMenuItem("Please wait...", False)]
     
     def calculate_items_for_result(self, uri, result):
         return [FakeMenuItem("Menu item for: %s" % result)]
+    
+    def get_background_items_normal(self, folder):
+        pass
         
+    def get_background_items_inner(self, folder):
+        pass
+    
     def get_background_items_full(self, provider, window, folder):
+        
         if self.provider is None:
             self.provider = provider
         
-        # If we're here because of the update signal, 
-
-        return self.calculate_items_for_result(folder.get_uri(), "Blah")
+        uri = folder.get_uri()
         
+        self.items[uri] = folder
+        
+        if self.in_update_signal:
+            items = self.get_background_items_inner(folder)
+            self.uris_requested_for_update.add(uri)
+        else:
+            items = self.get_background_items_normal(folder)
+        
+        return items
+
+    def menu_work_complete(self, uri, result):
+        
+        self.emit_items_updated_signal(provider)
+
+        for uri_key in self.items:
+            # We can check what items were requested inside the
+            # "get_background_items_full" call INSIDE the update signal.
+            # Whatever is not in that list, we can discard.
+            if uri_key not in self.uris_requested_for_update:
+                del self.items[uri_key]
+        
+        self.uris_requested_for_update.clear()
