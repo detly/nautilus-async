@@ -34,6 +34,16 @@ class FakeMenuItem(nautilus.MenuItem):
                                         None)
         self.set_property('sensitive', sensitive)
 
+class ItemResult(object):
+    """
+    Associates a nautilus.FileInfo object with an eventual result. The result
+    of the asynchronous activity is stored in the "result" member.
+    """
+    
+    def __init__(self, nautilus_file_info):
+        self.item = nautilus_file_info
+        self.result = None    
+
 class AsyncBackgroundMenuProvider(nautilus.MenuProvider):
     """
     WARNING: I have not fully tested the "in_update_signal" mechanism.
@@ -53,18 +63,11 @@ class AsyncBackgroundMenuProvider(nautilus.MenuProvider):
                         uri,
                         42)
 
-
-    def get_items_initial(self, uri):
-        return [FakeMenuItem("Please wait...", False)]
-    
-    def calculate_items_for_result(self, uri, result):
-        return [FakeMenuItem("Menu item for: %s" % result)]
-    
     def get_background_items_initial(self, folder):
-        sys.stderr.write("Initial: %s\n" % folder.get_uri())
+        return [FakeMenuItem("Please wait...", False)]
         
-    def get_background_items_final(self, folder):
-        sys.stderr.write("Final: %s\n" % folder.get_uri())
+    def get_background_items_final(self, folder, result):
+        return [FakeMenuItem("Menu item for: %s" % result)]
     
     def get_background_items_full(self, provider, window, folder):
                 
@@ -75,13 +78,13 @@ class AsyncBackgroundMenuProvider(nautilus.MenuProvider):
         
         sys.stderr.write("Requesting: %s\n" % uri) 
         sys.stderr.write("In update signal: %s\n" % self.in_update_signal)
-        
-        self.items[uri] = folder
-        
+                
         if self.in_update_signal:
-            items = self.get_background_items_final(folder)
+            result = self.items[uri].result
+            items = self.get_background_items_final(folder, result)
             self.uris_requested_for_update.add(uri)
         else:
+            self.items[uri] = ItemResult(folder)
             items = self.get_background_items_initial(folder)
             self.schedule_menu_work(uri)
         
@@ -90,6 +93,8 @@ class AsyncBackgroundMenuProvider(nautilus.MenuProvider):
     def menu_work_complete(self, uri, result):
         
         sys.stderr.write("Completed work for %s\n" % uri)
+        
+        self.items[uri].result = result
         
         self.in_update_signal = True
         self.emit_items_updated_signal(self.provider)
