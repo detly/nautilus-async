@@ -46,6 +46,7 @@ class AsyncBackgroundMenuProvider(nautilus.MenuProvider):
 
     def schedule_menu_work(self, uri):
         # Let's just make something up to demonstrate
+        sys.stderr.write("Scheduling: %s\n" % uri)
         glib.timeout_add_seconds(
                         TIMEOUT,
                         self.menu_work_complete,
@@ -59,38 +60,51 @@ class AsyncBackgroundMenuProvider(nautilus.MenuProvider):
     def calculate_items_for_result(self, uri, result):
         return [FakeMenuItem("Menu item for: %s" % result)]
     
-    def get_background_items_normal(self, folder):
-        pass
+    def get_background_items_initial(self, folder):
+        sys.stderr.write("Initial: %s\n" % folder.get_uri())
         
-    def get_background_items_inner(self, folder):
-        pass
+    def get_background_items_final(self, folder):
+        sys.stderr.write("Final: %s\n" % folder.get_uri())
     
     def get_background_items_full(self, provider, window, folder):
-        
+                
         if self.provider is None:
             self.provider = provider
         
         uri = folder.get_uri()
         
+        sys.stderr.write("Requesting: %s\n" % uri) 
+        sys.stderr.write("In update signal: %s\n" % self.in_update_signal)
+        
         self.items[uri] = folder
         
         if self.in_update_signal:
-            items = self.get_background_items_inner(folder)
+            items = self.get_background_items_final(folder)
             self.uris_requested_for_update.add(uri)
         else:
-            items = self.get_background_items_normal(folder)
+            items = self.get_background_items_initial(folder)
+            self.schedule_menu_work(uri)
         
         return items
 
     def menu_work_complete(self, uri, result):
         
-        self.emit_items_updated_signal(provider)
+        sys.stderr.write("Completed work for %s\n" % uri)
+        
+        self.in_update_signal = True
+        self.emit_items_updated_signal(self.provider)
+        self.in_update_signal = False
 
-        for uri_key in self.items:
+        for uri_key in self.items.keys():
             # We can check what items were requested inside the
             # "get_background_items_full" call INSIDE the update signal.
             # Whatever is not in that list, we can discard.
             if uri_key not in self.uris_requested_for_update:
+                sys.stderr.write("Deleting URI from dict: %s\n" % uri)
                 del self.items[uri_key]
         
         self.uris_requested_for_update.clear()
+        
+        sys.stderr.write("Items remaining:\n\t")
+        sys.stderr.write("\n\t".join(self.items.keys()) + "\n")
+        
