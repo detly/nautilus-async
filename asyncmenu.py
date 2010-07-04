@@ -92,10 +92,13 @@ class AsyncBackgroundMenuProvider(nautilus.MenuProvider):
 
     def menu_work_complete(self, uri, result):
         
+        # IMPORTANT: long delays in this function will make Nautilus, and
+        # possibly the whole GNOME session, lock up.
+        
         sys.stderr.write("Completed work for %s\n" % uri)
         
         self.items[uri].result = result
-        
+                
         self.in_update_signal = True
         self.emit_items_updated_signal(self.provider)
         self.in_update_signal = False
